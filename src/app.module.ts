@@ -3,12 +3,18 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SharedModule } from './shared/shared.module';
 import { OtherModule } from './other/other.module';
+import { EventBusModule } from './event-bus/event-bus.module';
+import { UsersModule } from './users/users.module';
+import { MonitorModule } from './monitor/monitor.module';
 
 
 @Module({
   imports: [
     SharedModule,
     OtherModule,
+    EventBusModule,
+    UsersModule,
+    MonitorModule,
   ],
   controllers: [AppController],
   providers: [AppService],
