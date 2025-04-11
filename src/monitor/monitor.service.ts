@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventBusService } from 'src/event-bus/event-bus.service';
+import { EventNames } from 'src/event-bus/event-names.enum';
 
 
 /**
@@ -14,7 +15,7 @@ export class MonitorService implements OnModuleInit {
 	constructor(private readonly eventBus: EventBusService) {}
 
 	onModuleInit() {
-		this.eventBus.on<{id: number, name: string}>('user.getAll')
+		this.eventBus.on(EventNames.USER_GETALL)
       .subscribe(data => {
         console.log(`收到 get all users: ${data}`);        
       });

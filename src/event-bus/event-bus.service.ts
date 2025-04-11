@@ -1,24 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
+import { EventPayloads } from './event-payload.interface';
 
 
 @Injectable()
 export class EventBusService {
 	private subject = new Map<string, Subject<any>>();
 
-	private getOrCreateSubject<T>(eventName: string): Subject<T> {
-		if (!this.subject.has(eventName)) {
-			this.subject.set(eventName, new Subject<T>());
+	private getOrCreateSubject<K extends keyof EventPayloads>(event: K): Subject<EventPayloads[K]> {
+		if (!this.subject.has(event)) {
+			this.subject.set(event, new Subject<EventPayloads[K]>());
 		}
-		return this.subject.get(eventName) as Subject<T>;
+		return this.subject.get(event) as Subject<EventPayloads[K]>;
 	}
 
-	emit<T>(eventName: string, data: T): void {
-		const subject = this.getOrCreateSubject<T>(eventName);
-		subject.next(data);
+	emit<K extends keyof EventPayloads>(event: K, data: EventPayloads[K]): void {
+		this.getOrCreateSubject(event).next(data);
 	}
 
-	on<T>(eventName: string): Observable<T> {
-		return this.getOrCreateSubject<T>(eventName).asObservable();
+	on<K extends keyof EventPayloads>(event: K): Observable<EventPayloads[K]> {
+		return this.getOrCreateSubject(event).asObservable();
 	}
 }
