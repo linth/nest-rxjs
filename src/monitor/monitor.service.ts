@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventBusService } from 'src/event-bus/event-bus.service';
 import { EventNames } from 'src/event-bus/event-names.enum';
+import { RxjsRedisEventBusService } from 'src/rxjs-redis-event-bus/rxjs-redis-event-bus.service';
 
 
 /**
@@ -12,12 +13,20 @@ import { EventNames } from 'src/event-bus/event-names.enum';
  */
 @Injectable()
 export class MonitorService implements OnModuleInit {
-	constructor(private readonly eventBus: EventBusService) {}
+	constructor(
+		private readonly eventBus: EventBusService,
+		private readonly rxjsRedisEventBus: RxjsRedisEventBusService,
+	) {}
 
 	onModuleInit() {
 		this.eventBus.on(EventNames.USER_GETALL)
       .subscribe(data => {
-        console.log(`收到 get all users: ${data}`);        
+        console.log(`[eventBus] 收到 get all users: ${data}`);        
       });
+
+		this.rxjsRedisEventBus.on<{id: string, name: string}>(EventNames.USER_GETALL)
+			.subscribe(data => {
+				console.log('⚡️[rxjsRedisEventBus] 收到使用者建立:', data);
+			});
 	}
 }
