@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { OtherService } from './other.service';
-import { SharedService } from 'src/shared/shared.service';
 import { SharedModule } from 'src/shared/shared.module';
 
 @Module({
