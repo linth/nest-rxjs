@@ -6,6 +6,7 @@ import { OtherModule } from './other/other.module';
 import { EventBusModule } from './event-bus/event-bus.module';
 import { UsersModule } from './users/users.module';
 import { MonitorModule } from './monitor/monitor.module';
+import { RxjsRedisEventBusModule } from './rxjs-redis-event-bus/rxjs-redis-event-bus.module';
 
 
 @Module({
@@ -15,6 +16,7 @@ import { MonitorModule } from './monitor/monitor.module';
     EventBusModule,
     UsersModule,
     MonitorModule,
+    RxjsRedisEventBusModule,
   ],
   controllers: [AppController],
   providers: [AppService],
