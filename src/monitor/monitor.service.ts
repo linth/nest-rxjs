@@ -24,14 +24,10 @@ export class MonitorService implements OnModuleInit {
         console.log(`[eventBus] 收到 get all users: ${data}`);        
       });
 
-		this.rxjsEventBus.on<{id: string, name: string}>(EventNames.USER_GETALL)
-			.subscribe(data => {
-				console.log('📦 Monitor service 收到:', data);
-			});
+		this.rxjsEventBus.on<{ id: string; name: string }[]>(EventNames.USER_GETALL)
+			.subscribe(data => console.log('📦 [Monitor] 使用者清單:', data));
 
 		this.rxjsEventBus.on<{key: string}>(EventNames.CACHE_EXPIRED)
-			.subscribe(data => {
-				console.log('🚨 Monitor service 收到:', data);
-			})
+			.subscribe(data => console.log('🚨 [Monitor] 快取過期:', data));
 	}
 }

@@ -1,7 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { CacheExpiredHandler } from './event-handler/cache.handler';
 import { UserHandler } from './event-handler/user.handler';
-import { RedisEventHandler } from './event-handler/redis-event-handler.interface';
 import { REDIS_EVENT_HANDLERS } from './tokens';
 import { RxjsEventBusController } from './rxjs-event-bus.controller';
 import { RxjsEventBusService } from './rxjs-event-bus.service';
@@ -15,7 +14,7 @@ import { RxjsEventBusService } from './rxjs-event-bus.service';
     CacheExpiredHandler,
     {
       provide: REDIS_EVENT_HANDLERS,
-      useFactory: (...handlers: RedisEventHandler<any, any>[]) => handlers,
+      useFactory: (...handlers) => handlers,
       inject: [
         UserHandler, 
         CacheExpiredHandler,

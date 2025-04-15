@@ -5,6 +5,7 @@ import { RedisEventHandler } from './event-handler/redis-event-handler.interface
 import { EventNames } from 'src/event-bus/event-names.enum';
 import { EventPayloads } from 'src/event-bus/event-payload.interface';
 import { REDIS_EVENT_HANDLERS } from './tokens';
+import { RedisService } from 'src/redis/redis.service';
 
 
 /**
@@ -19,37 +20,19 @@ import { REDIS_EVENT_HANDLERS } from './tokens';
  * 
  */
 @Injectable()
-export class RxjsEventBusService implements OnModuleInit, OnModuleDestroy {
-	private redisPublisher: RedisClientType;
-	private redisSubscriber: RedisClientType;
+export class RxjsEventBusService implements OnModuleInit {
 	private subjects: Map<string, Subject<any>> = new Map();
 
 	constructor(
+		private readonly redisClient: RedisService,
 		@Inject(REDIS_EVENT_HANDLERS)
 		private readonly handlers: RedisEventHandler[],
 	) {}
 
 	async onModuleInit() {
-		/**
-		 * 這兩行建立了兩個 Redis client：
-		 * 	- redisPublisher：用來發送事件（publish()）
-		 * 	- redisSubscriber：用來訂閱事件（pSubscribe()）
-		 * 
-		 * Redis 的 client 無法同時做 publish 和 subscribe，所以要分開建立兩個實例。
-		 */
-		this.redisPublisher = createClient();
-		this.redisSubscriber = createClient();
-
-		/**
-		 * 這是連線 Redis server，createClient() 是 async，因此需要 await。
-		 */
-		await Promise.all([
-			this.redisPublisher.connect(),
-			this.redisSubscriber.connect(),
-		]);
-
 		this.initHandlers();
 		this.listenRedisEvents();		
+		// console.log(`🟢 RxjsEventBus 啟動，共 ${this.handlers.length} 個 handler`)
 	}
 
 	private initHandlers(): void {
@@ -60,7 +43,7 @@ export class RxjsEventBusService implements OnModuleInit, OnModuleDestroy {
 		}
 	}
 
-	private listenRedisEvents(): void {
+	private async listenRedisEvents(): Promise<void> {
 		/**
 		 * pSubscribe('*', ...)
 		 * 	- 訂閱所有頻道（用 * 是 wildcard pattern）
@@ -82,34 +65,39 @@ export class RxjsEventBusService implements OnModuleInit, OnModuleDestroy {
 		 * 	- 找出該事件對應的 RxJS Subject，把資料發射出去（subject.next(...)）。
 		 * 	- 所有訂閱了這個 Subject 的 handler / 其他模組都會收到這個事件。
 		 */
-		this.redisSubscriber.pSubscribe('*', (message, channel) => {
-			try {
-				const subject = this.subjects.get(channel);
-				if (subject) {
-					subject.next(JSON.parse(message));
-				} else {
-					console.warn(`❗ 未找到 channel: ${channel} 的對應 subject`);
-				}
-			} catch (error) {
-				console.error(`❌ Redis 訊息處理錯誤:`, error);
-			}
-		});
-	}
-
-	async onModuleDestroy(): Promise<void> {
-		await this.redisPublisher.quit();
-		await this.redisSubscriber.quit();
+		try {
+			(await this.redisClient.getSubscriber())
+				.on('error', (err) => {
+					console.error('🚨 Redis Subscriber 發生錯誤:', err);
+				})
+				.pSubscribe('*', (message, channel) => {
+					try {
+						const subject = this.subjects.get(channel);
+						if (subject) {
+							subject.next(JSON.parse(message));
+						} else {
+							console.warn(`❗ 未找到 channel: ${channel} 的對應 subject`);
+						}
+					} catch (error) {
+						console.error(`❌ Redis 訊息處理錯誤 [${channel}]:`, error);
+					}
+				})
+				
+		} catch (err) {
+			console.error('❌ 無法初始化 Redis 訂閱:', err);
+		}
 	}
 
 	async emit<K extends EventNames>(event: K, data: EventPayloads[K]): Promise<void> {
-    await this.redisPublisher.publish(event, JSON.stringify(data));
+		await (await this.redisClient.getPublisher())
+			.publish(event, JSON.stringify(data));
   }
 
 	on<T = any>(event: string): Observable<T> {
 		if (!this.subjects.has(event)) {
-			this.subjects.set(event, new Subject<T>());
-		}
-		return this.subjects.get(event).asObservable();
+      this.subjects.set(event, new Subject<T>());
+    }
+    return this.subjects.get(event).asObservable();
 	}
 
 	private getOrCreateSubject<K extends EventNames>(event: K): Subject<EventPayloads[K]> {
