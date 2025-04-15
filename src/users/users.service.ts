@@ -21,4 +21,11 @@ export class UsersService {
 		this.rxjsRedisEventBus.emit(EventNames.USER_GETALL, users);
     return users;
 	}
+
+	getCacheExpired() {
+		const data = {
+			key: EventNames.CACHE_EXPIRED,
+		}
+		this.rxjsRedisEventBus.emit(EventNames.CACHE_EXPIRED, data);
+	}
 }

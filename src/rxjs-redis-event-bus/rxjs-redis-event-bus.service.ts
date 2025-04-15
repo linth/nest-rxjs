@@ -1,6 +1,10 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { createClient, RedisClientType } from 'redis';
 import { Observable, Subject } from 'rxjs';
+import { RedisEventHandler } from './event-handler/redis-event-handler.interface';
+import { EventNames } from 'src/event-bus/event-names.enum';
+import { EventPayloads } from 'src/event-bus/event-payload.interface';
+import { REDIS_EVENT_HANDLERS } from './tokens';
 
 
 /**
@@ -18,8 +22,12 @@ import { Observable, Subject } from 'rxjs';
 export class RxjsRedisEventBusService implements OnModuleInit, OnModuleDestroy {
 	private redisPublisher: RedisClientType;
 	private redisSubscriber: RedisClientType;
-
 	private subjects: Map<string, Subject<any>> = new Map();
+
+	constructor(
+		@Inject(REDIS_EVENT_HANDLERS)
+		private readonly handlers: RedisEventHandler[],
+	) {}
 
 	async onModuleInit() {
 		/**
@@ -35,9 +43,24 @@ export class RxjsRedisEventBusService implements OnModuleInit, OnModuleDestroy {
 		/**
 		 * 這是連線 Redis server，createClient() 是 async，因此需要 await。
 		 */
-		await this.redisPublisher.connect();
-		await this.redisSubscriber.connect();
+		await Promise.all([
+			this.redisPublisher.connect(),
+			this.redisSubscriber.connect(),
+		]);
 
+		this.initHandlers();
+		this.listenRedisEvents();		
+	}
+
+	private initHandlers(): void {
+		// 把每個 handler 註冊的事件名稱拿出來，產生 Subject，轉換為 Observable 傳給 handler
+		for (const handler of this.handlers) {
+			const subject = this.getOrCreateSubject(handler.event);
+			handler.handle(subject.asObservable());
+		}
+	}
+
+	private listenRedisEvents(): void {
 		/**
 		 * pSubscribe('*', ...)
 		 * 	- 訂閱所有頻道（用 * 是 wildcard pattern）
@@ -53,23 +76,34 @@ export class RxjsRedisEventBusService implements OnModuleInit, OnModuleDestroy {
 		 * [ Redis 訊息 ] --> [ RxJS Subject.next() ] --> [ 各模組的 .subscribe() ]
 		 * 任何經由 Redis.publish() 傳送出來的事件，都會透過這個管道被 RxJS 的 Observable 接收，實現跨模組 / 跨服務的即時反應能力。
 		 * 
+		 * 
+		 * 重頭戲：Redis PubSub 訂閱所有主題（*）
+		 * 	- 當某個事件被 emit（透過 Redis）後，這裡就會收到。
+		 * 	- 找出該事件對應的 RxJS Subject，把資料發射出去（subject.next(...)）。
+		 * 	- 所有訂閱了這個 Subject 的 handler / 其他模組都會收到這個事件。
 		 */
 		this.redisSubscriber.pSubscribe('*', (message, channel) => {
-			const subject = this.subjects.get(channel);
-			if (subject) {
-				subject.next(JSON.parse(message));
+			try {
+				const subject = this.subjects.get(channel);
+				if (subject) {
+					subject.next(JSON.parse(message));
+				} else {
+					console.warn(`❗ 未找到 channel: ${channel} 的對應 subject`);
+				}
+			} catch (error) {
+				console.error(`❌ Redis 訊息處理錯誤:`, error);
 			}
 		});
 	}
 
-	async onModuleDestroy() {
+	async onModuleDestroy(): Promise<void> {
 		await this.redisPublisher.quit();
 		await this.redisSubscriber.quit();
 	}
 
-	async emit<T = any>(event: string, data: T) {
-		await this.redisPublisher.publish(event, JSON.stringify(data));
-	}
+	async emit<K extends EventNames>(event: K, data: EventPayloads[K]): Promise<void> {
+    await this.redisPublisher.publish(event, JSON.stringify(data));
+  }
 
 	on<T = any>(event: string): Observable<T> {
 		if (!this.subjects.has(event)) {
@@ -77,4 +111,11 @@ export class RxjsRedisEventBusService implements OnModuleInit, OnModuleDestroy {
 		}
 		return this.subjects.get(event).asObservable();
 	}
+
+	private getOrCreateSubject<K extends EventNames>(event: K): Subject<EventPayloads[K]> {
+    if (!this.subjects.has(event)) {
+      this.subjects.set(event, new Subject<EventPayloads[K]>());
+    }
+    return this.subjects.get(event)!;
+  }
 }

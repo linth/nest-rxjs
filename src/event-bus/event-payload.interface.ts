@@ -6,5 +6,6 @@ import { EventNames } from "./event-names.enum";
 
 export interface EventPayloads {
 	[EventNames.USER_GETALL]: { id: string; name: string }[];
+	[EventNames.CACHE_EXPIRED]: { key: string };
 	[EventNames.DEVICE_CONNECTED]: { deviceId: string, time: Date };
 }

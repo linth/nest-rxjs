@@ -10,4 +10,9 @@ export class UsersController {
   getAllUser() {
     return this.usersService.getAllUser();
   }
+
+  @Get('cache')
+  getCacheExpired() {
+    return this.usersService.getCacheExpired();
+  }
 }

@@ -26,7 +26,12 @@ export class MonitorService implements OnModuleInit {
 
 		this.rxjsRedisEventBus.on<{id: string, name: string}>(EventNames.USER_GETALL)
 			.subscribe(data => {
-				console.log('⚡️[rxjsRedisEventBus] 收到使用者建立:', data);
+				console.log('📦 Monitor service 收到:', data);
 			});
+
+		this.rxjsRedisEventBus.on<{key: string}>(EventNames.CACHE_EXPIRED)
+			.subscribe(data => {
+				console.log('🚨 Monitor service 收到:', data);
+			})
 	}
 }
