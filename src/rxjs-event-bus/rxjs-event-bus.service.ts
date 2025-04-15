@@ -1,5 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { createClient, RedisClientType } from 'redis';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 import { RedisEventHandler } from './event-handler/redis-event-handler.interface';
 import { EventNames } from 'src/event-bus/event-names.enum';
