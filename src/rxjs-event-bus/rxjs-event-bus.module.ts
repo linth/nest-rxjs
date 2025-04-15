@@ -1,16 +1,16 @@
 import { Global, Module } from '@nestjs/common';
-import { RxjsRedisEventBusService } from './rxjs-redis-event-bus.service';
-import { RxjsRedisEventBusController } from './rxjs-redis-event-bus.controller';
 import { CacheExpiredHandler } from './event-handler/cache.handler';
 import { UserHandler } from './event-handler/user.handler';
 import { RedisEventHandler } from './event-handler/redis-event-handler.interface';
 import { REDIS_EVENT_HANDLERS } from './tokens';
+import { RxjsEventBusController } from './rxjs-event-bus.controller';
+import { RxjsEventBusService } from './rxjs-event-bus.service';
 
 @Global()
 @Module({
-  controllers: [RxjsRedisEventBusController],
+  controllers: [RxjsEventBusController],
   providers: [
-    RxjsRedisEventBusService,
+    RxjsEventBusService,
     UserHandler,
     CacheExpiredHandler,
     {
@@ -22,6 +22,6 @@ import { REDIS_EVENT_HANDLERS } from './tokens';
       ],
     }
   ],
-  exports: [RxjsRedisEventBusService],
+  exports: [RxjsEventBusService],
 })
-export class RxjsRedisEventBusModule {}
+export class RxjsEventBusModule {}

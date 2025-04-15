@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventBusService } from 'src/event-bus/event-bus.service';
 import { EventNames } from 'src/event-bus/event-names.enum';
-import { RxjsRedisEventBusService } from 'src/rxjs-redis-event-bus/rxjs-redis-event-bus.service';
+import { RxjsEventBusService } from 'src/rxjs-event-bus/rxjs-event-bus.service';
 
 
 /**
@@ -15,7 +15,7 @@ import { RxjsRedisEventBusService } from 'src/rxjs-redis-event-bus/rxjs-redis-ev
 export class MonitorService implements OnModuleInit {
 	constructor(
 		private readonly eventBus: EventBusService,
-		private readonly rxjsRedisEventBus: RxjsRedisEventBusService,
+		private readonly rxjsEventBus: RxjsEventBusService,
 	) {}
 
 	onModuleInit() {
@@ -24,12 +24,12 @@ export class MonitorService implements OnModuleInit {
         console.log(`[eventBus] 收到 get all users: ${data}`);        
       });
 
-		this.rxjsRedisEventBus.on<{id: string, name: string}>(EventNames.USER_GETALL)
+		this.rxjsEventBus.on<{id: string, name: string}>(EventNames.USER_GETALL)
 			.subscribe(data => {
 				console.log('📦 Monitor service 收到:', data);
 			});
 
-		this.rxjsRedisEventBus.on<{key: string}>(EventNames.CACHE_EXPIRED)
+		this.rxjsEventBus.on<{key: string}>(EventNames.CACHE_EXPIRED)
 			.subscribe(data => {
 				console.log('🚨 Monitor service 收到:', data);
 			})

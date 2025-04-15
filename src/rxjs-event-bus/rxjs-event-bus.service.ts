@@ -19,7 +19,7 @@ import { REDIS_EVENT_HANDLERS } from './tokens';
  * 
  */
 @Injectable()
-export class RxjsRedisEventBusService implements OnModuleInit, OnModuleDestroy {
+export class RxjsEventBusService implements OnModuleInit, OnModuleDestroy {
 	private redisPublisher: RedisClientType;
 	private redisSubscriber: RedisClientType;
 	private subjects: Map<string, Subject<any>> = new Map();

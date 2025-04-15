@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { EventBusService } from 'src/event-bus/event-bus.service';
 import { EventNames } from 'src/event-bus/event-names.enum';
-import { RxjsRedisEventBusService } from 'src/rxjs-redis-event-bus/rxjs-redis-event-bus.service';
+import { RxjsEventBusService } from 'src/rxjs-event-bus/rxjs-event-bus.service';
 
 
 @Injectable()
 export class UsersService {
 	constructor(
 		private readonly eventBus: EventBusService,
-		private readonly rxjsRedisEventBus: RxjsRedisEventBusService,
+		private readonly rxjsEventBus: RxjsEventBusService,
 	) {}
 
 	getAllUser() {
@@ -18,7 +18,7 @@ export class UsersService {
     ]
 
     this.eventBus.emit(EventNames.USER_GETALL, users);
-		this.rxjsRedisEventBus.emit(EventNames.USER_GETALL, users);
+		this.rxjsEventBus.emit(EventNames.USER_GETALL, users);
     return users;
 	}
 
@@ -26,6 +26,6 @@ export class UsersService {
 		const data = {
 			key: EventNames.CACHE_EXPIRED,
 		}
-		this.rxjsRedisEventBus.emit(EventNames.CACHE_EXPIRED, data);
+		this.rxjsEventBus.emit(EventNames.CACHE_EXPIRED, data);
 	}
 }
